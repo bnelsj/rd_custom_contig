@@ -1,0 +1,3 @@
+CONTIG = config.get("contig")
+
+shell.prefix("source modules.txt; ")
