@@ -1,3 +1,116 @@
-CONTIG = config.get("contig")
+import os
+
+if not os.path.exists("log"):
+    os.makedir("log")
+
+SPECIES = config.get("species")
+CONTIG_NAMES = config.get("contigs").keys()
+CONTIG_PATHS = [config["contigs"][contig]["fasta"] for contig in CONTIG_NAMES]
+
+REFERENCE = config.get("reference")
+MASKED_REFERENCE = config["ref_files"][REFERENCE]["masked_reference"]
 
 shell.prefix("source modules.txt; ")
+
+def get_allelic_regions(wildcards):
+    return config["contigs"][wildcards.contig]["allelic_regions"]
+
+rule all:
+    input: expand("{contig}_sunk_mask_track_pad36_e0.dts", contig = CONTIG_NAMES)
+
+rule make_sunk_track:
+    input: fasta = "analysis/{contig}/fastas/{contig}.fasta", 
+            masked_fasta = "analysis/{contig}/fastas/{contig}.masked", 
+            trf_masked_fasta = "analysis/{contig}/fastas/{contig}.2.3.5.80.10.30.1000.mask",
+            contig_lengths = "{contig}_lengths.tab",
+            sunks = "analysis/{contig}/mappings/mapped_kmers.SINGLE_HITS"
+    output: "{contig}_sunk_mask_track_pad36_e0.dts"
+    params: sge_opts = ""
+    shell:
+        "~jlhudd/pipelines/sunks/do_make_sunks_mask.sh {input.fasta} {input.masked_fasta} {input.trf_masked_fasta} \
+            {input.contig_lengths} {input.sunks} {output}"
+
+rule get_single_hits:
+    input: "analysis/{contig}/mappings/mapped_kmers"
+    output: "analysis/{contig}/mappings/mapped_kmers.SINGLE_HITS", "analysis/{contig}/mappings/mapped_kmers.SINGLE_HITS.bed"
+    params: sge_opts = ""
+    shell:
+        "cut -f 1 {input} | sort -k 1,1 | uniq -u > {output[0]}; "
+        "sed 's/:/\t/g' {output[0]} > {output[1]}"
+
+rule map_kmers_to_genome:
+    input: "allele_cleaned_genomes/masked_%s_plus_{contig}.fa" % REFERENCE, "allele_cleaned_genomes/masked_%s_plus_{contig}.fa.index" % REFERENCE, "analysis/{contig}/fastas/{contig}.KMERS.uniq_part0.fastq.gz"
+    output: "analysis/{contig}/mappings/mapped_kmers"
+    params: sge_opts = ""
+    shell:
+        "~calkan/bin/mrsfast --seqcomp --search {input[0]} --seq {input[2]} -o {output} -e 0"
+
+rule kmer_to_fastq:
+    input: "analysis/{contig}/fastas/{contig}.KMERS.uniq"
+    output: "analysis/{contig}/fastas/{contig}.KMERS.uniq_part0.fastq.gz"
+    params: sge_opts = ""
+    shell:
+        "python ~psudmant/EEE_Lab/projects/sunks/code/kmer_list_to_fastq.py \
+                --input_kmer_list {input} --outfile {output}"
+
+rule get_unique_kmers:
+    input: "analysis/{contig}/fastas/{contig}.KMERS"
+    output: "analysis/{contig}/fastas/{contig}.KMERS.uniq"
+    params: sge_opts = ""
+    shell: 
+        "sort -k 4,4 {input} | uniq -u -f 3 | sed '/DEBUG/d' > {output}"
+
+rule build_kmers:
+    input: "analysis/{contig}/fastas/{contig}.fasta", "analysis/{contig}/fastas/{contig}.2.3.5.80.10.30.1000.mask"
+    output: "analysis/{contig}/fastas/{contig}.KMERS"
+    params: sge_opts = "-l mfree=2G"
+    shell:
+        "python ~psudmant/EEE_Lab/projects/sunks/code/make_Kmer_fastqs_from_masked_fastas.py \
+        --input_fasta {input} > {output}"
+
+rule mrsfast_index:
+    input: "allele_cleaned_genomes/masked_%s_plus_{contig}.fa" % REFERENCE
+    output: "allele_cleaned_genomes/masked_%s_plus_{contig}.fa.index" % REFERENCE
+    params: sge_opts = "-l mfree=2G -N mrsfast_index"
+    shell: "~calkan/bin/mrsfast --index {input}"
+
+rule make_hardmasked_reference:
+    input: get_allelic_regions, MASKED_REFERENCE, "analysis/{contig}/fastas/{contig}.masked"
+    output: "allele_cleaned_genomes/masked_%s_{contig}.fa" % REFERENCE, "allele_cleaned_genomes/masked_%s_plus_{contig}.fa" % REFERENCE
+    params: sge_opts = "-N hardmask"
+    shell:
+        "maskFastaFromBed -fi {input[1]} -bed {input[0]} -fo {output[0]}; "
+        "cat {output[0]} {input[2]} > {output[1]}"
+
+rule find_tandem_repeats:
+    input: "analysis/{contig}/fastas/{contig}.fasta", "analysis/{contig}/fastas/{contig}.fasta.fai"
+    output: "analysis/{contig}/fastas/{contig}.2.3.5.80.10.30.1000.mask"
+    params: sge_opts = "-l mfree=2G -N trf_mask"
+    run:
+        basename = os.path.basename(input[0])
+        outdir = os.path.dirname(output[0])
+        shell("cd {outdir}; /net/eichler/vol7/home/psudmant/local_installations/TRF/trf400.linux.exe {basename} 2 3 5 80 10 30 1000 -m -d -h")
+
+rule mask_repeats:
+    input: "analysis/{contig}/fastas/{contig}.fasta", "analysis/{contig}/fastas/{contig}.fasta.fai"
+    output: "analysis/{contig}/fastas/{contig}.fasta.masked", "analysis/{contig}/fastas/{contig}.fasta.out.gff"
+    params: sge_opts = "-l mfree=2G -pe orte 8 -N rptmskr"
+    run: 
+        outdir = os.path.dirname(output[0])
+        shell("""RepeatMasker -pa 8 -s -gff -no_is -xsmall -e wublast -species "{SPECIES}" -dir {outdir} {input}; rm -f {outdir}/{input[0]}.{{cat,out,ref,tbl}}""")
+        if not all([os.path.exists(out) for out in output]):
+            shell("rsync {input[0]} {output[0]}; touch {output[1]}")
+
+rule get_contig_lengths:
+    input: "analysis/{contig}/fastas/{contig}.fasta.fai"
+    output: "{contig}_lengths.tab"
+    params: sge_opts = ""
+    shell: "cut -f 1-2 {input} > {output}"
+
+rule index_fasta:
+    input: CONTIG_PATHS
+    output: "analysis/{contig}/fastas/{contig}.fasta", "analysis/{contig}/fastas/{contig}.fasta.fai"
+    params: sge_opts = ""
+    run:
+        contig_path = [path for path in input if wildcards.contig == os.path.basename(path).replace(".fasta", "")][0]
+        shell("cp {contig_path} {output[0]}; samtools faidx {output[0]}")

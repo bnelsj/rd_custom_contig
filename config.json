@@ -1,3 +1,9 @@
 {
-	"contig": "/net/eichler/vol5/home/bnelsj/projects/kiana_chr8/ch17_sunk/CH17_1-6261457.fasta"
+  "reference": "hg19",
+  "contigs": {"CH17_1-6261457": {"fasta": "/net/eichler/vol5/home/bnelsj/projects/kiana_chr8/ch17_sunk/CH17_1-6261457.fasta", 
+                                 "allelic_regions": "allelic_regions.bed"}},
+  "species": "human",
+  "ref_files": {
+                  "hg19": {"masked_reference": "/net/eichler/vol2/eee_shared/assemblies/hg19/hg19_masked"}
+                }
 }
