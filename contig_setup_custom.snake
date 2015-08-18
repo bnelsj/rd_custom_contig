@@ -21,7 +21,7 @@ rule all:
 rule make_sunk_track:
     input: fasta = "analysis/{contig}/fastas/{contig}.fasta", 
             masked_fasta = "analysis/{contig}/fastas/{contig}.masked", 
-            trf_masked_fasta = "analysis/{contig}/fastas/{contig}.2.3.5.80.10.30.1000.mask",
+            trf_masked_fasta = "analysis/{contig}/fastas/{contig}.fasta.2.3.5.80.10.30.1000.mask",
             contig_lengths = "{contig}_lengths.tab",
             sunks = "analysis/{contig}/mappings/mapped_kmers.SINGLE_HITS"
     output: "{contig}_sunk_mask_track_pad36_e0.dts"
@@ -61,7 +61,7 @@ rule get_unique_kmers:
         "sort -k 4,4 {input} | uniq -u -f 3 | sed '/DEBUG/d' > {output}"
 
 rule build_kmers:
-    input: "analysis/{contig}/fastas/{contig}.fasta", "analysis/{contig}/fastas/{contig}.2.3.5.80.10.30.1000.mask"
+    input: "analysis/{contig}/fastas/{contig}.fasta", "analysis/{contig}/fastas/{contig}.fasta.2.3.5.80.10.30.1000.mask"
     output: "analysis/{contig}/fastas/{contig}.KMERS"
     params: sge_opts = "-l mfree=2G"
     shell:
@@ -84,12 +84,12 @@ rule make_hardmasked_reference:
 
 rule find_tandem_repeats:
     input: "analysis/{contig}/fastas/{contig}.fasta", "analysis/{contig}/fastas/{contig}.fasta.fai"
-    output: "analysis/{contig}/fastas/{contig}.2.3.5.80.10.30.1000.mask"
+    output: "analysis/{contig}/fastas/{contig}.fasta.2.3.5.80.10.30.1000.mask"
     params: sge_opts = "-l mfree=2G -N trf_mask"
     run:
-        basename = os.path.basename(input[0])
+        infile = os.path.abspath(input[0])
         outdir = os.path.dirname(output[0])
-        shell("cd {outdir}; /net/eichler/vol7/home/psudmant/local_installations/TRF/trf400.linux.exe {basename} 2 3 5 80 10 30 1000 -m -d -h")
+        shell("cd {outdir}; /net/eichler/vol7/home/psudmant/local_installations/TRF/trf400.linux.exe {infile} 2 3 5 80 10 30 1000 -m -d -h || true")
 
 rule mask_repeats:
     input: "analysis/{contig}/fastas/{contig}.fasta", "analysis/{contig}/fastas/{contig}.fasta.fai"
