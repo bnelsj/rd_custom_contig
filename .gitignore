@@ -1,0 +1,14 @@
+.snakemake
+*.fasta
+*.fasta.fai
+*.fasta.index
+*.tab
+*.dts
+allele_cleaned_genomes
+mapping
+mask
+log
+*.fa
+*.bed
+analysis
+job_id_triplets.txt
