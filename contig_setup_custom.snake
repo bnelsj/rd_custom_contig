@@ -15,17 +15,35 @@ shell.prefix("source modules.txt; ")
 def get_allelic_regions(wildcards):
     return config["contigs"][wildcards.contig]["allelic_regions"]
 
+localrules: all, setup_rd_mapping
+
 rule all:
     input: expand("{contig}_sunk_mask_track_pad36_e0.dts", contig = CONTIG_NAMES)
 
+rule setup_rd_mapping:
+    input:  fasta = "mask/{contig}/fastas/{contig}.rp.trf.mask.fasta", 
+            contig_lengths = , 
+            bam_list = 
+    output: "job_id_triplets.txt"
+    params: mpi_map = config.get("mpi_mapper_path")
+    run:
+        cwd = os.getcwd()
+        shell("{params.mpi_map}/do_generate_mapping_scripts.sh \
+                -c {input.contig_lengths} \
+                -s {input.fasta} \
+                -i {params.index} {input.bam_list} {cwd}/mapping > {output}")
+        print("""To begin mapping, run this command:
+                 python {params.mpi_map}/qrls_jid_triplets.py -n 3 --fn_triplets job_id_triplets.txt | bash
+                 """)
+
 rule make_sunk_track:
-    input: fasta = "analysis/{contig}/fastas/{contig}.fasta", 
+    input:  fasta = "analysis/{contig}/fastas/{contig}.fasta", 
             masked_fasta = "analysis/{contig}/fastas/{contig}.masked", 
             trf_masked_fasta = "analysis/{contig}/fastas/{contig}.fasta.2.3.5.80.10.30.1000.mask",
             contig_lengths = "{contig}_lengths.tab",
             sunks = "analysis/{contig}/mappings/mapped_kmers.SINGLE_HITS"
     output: "{contig}_sunk_mask_track_pad36_e0.dts"
-    params: sge_opts = ""
+    params: sge_opts = "-l mfree=8G"
     shell:
         "~jlhudd/pipelines/sunks/do_make_sunks_mask.sh {input.fasta} {input.masked_fasta} {input.trf_masked_fasta} \
             {input.contig_lengths} {input.sunks} {output}"
@@ -41,7 +59,7 @@ rule get_single_hits:
 rule map_kmers_to_genome:
     input: "allele_cleaned_genomes/masked_%s_plus_{contig}.fa" % REFERENCE, "allele_cleaned_genomes/masked_%s_plus_{contig}.fa.index" % REFERENCE, "analysis/{contig}/fastas/{contig}.KMERS.uniq_part0.fastq.gz"
     output: "analysis/{contig}/mappings/mapped_kmers"
-    params: sge_opts = ""
+    params: sge_opts = "-l mfree=8G"
     shell:
         "~calkan/bin/mrsfast --seqcomp --search {input[0]} --seq {input[2]} -o {output} -e 0"
 
@@ -51,7 +69,7 @@ rule kmer_to_fastq:
     params: sge_opts = ""
     shell:
         "python ~psudmant/EEE_Lab/projects/sunks/code/kmer_list_to_fastq.py \
-                --input_kmer_list {input} --outfile {output}"
+                --input_kmer_list {input} --outfile {input}"
 
 rule get_unique_kmers:
     input: "analysis/{contig}/fastas/{contig}.KMERS"
@@ -61,12 +79,12 @@ rule get_unique_kmers:
         "sort -k 4,4 {input} | uniq -u -f 3 | sed '/DEBUG/d' > {output}"
 
 rule build_kmers:
-    input: "analysis/{contig}/fastas/{contig}.fasta", "analysis/{contig}/fastas/{contig}.fasta.2.3.5.80.10.30.1000.mask"
+    input: "analysis/{contig}/fastas/{contig}.fasta", "analysis/{contig}/fastas/{contig}.fasta.2.3.5.80.10.30.1000.mask", "analysis/{contig}/fastas/{contig}.fasta.masked"
     output: "analysis/{contig}/fastas/{contig}.KMERS"
     params: sge_opts = "-l mfree=2G"
     shell:
-        "python ~psudmant/EEE_Lab/projects/sunks/code/make_Kmer_fastqs_from_masked_fastas.py \
-        --input_fasta {input} > {output}"
+        "python scripts/make_Kmer_fastqs_from_masked_fastas.py \
+        --input_fasta {input[0]} > {output}"
 
 rule mrsfast_index:
     input: "allele_cleaned_genomes/masked_%s_plus_{contig}.fa" % REFERENCE
@@ -81,6 +99,13 @@ rule make_hardmasked_reference:
     shell:
         "maskFastaFromBed -fi {input[1]} -bed {input[0]} -fo {output[0]}; "
         "cat {output[0]} {input[2]} > {output[1]}"
+
+rule combine_trf_repeat_masks:
+    input: "analysis/{contig}/fastas/{contig}.fasta.2.3.5.80.10.30.1000.mask", "analysis/{contig}/fastas/{contig}.fasta.out.gff"
+    output: "mask/{contig}/fastas/{contig}.rp.trf.mask.fasta"
+    shell:
+        "bedtools -fi {input[0]} -bed {input[1]} -fo {output}; "
+        "~calkan/bin/mrsfast --index {output}"
 
 rule find_tandem_repeats:
     input: "analysis/{contig}/fastas/{contig}.fasta", "analysis/{contig}/fastas/{contig}.fasta.fai"
@@ -97,9 +122,7 @@ rule mask_repeats:
     params: sge_opts = "-l mfree=2G -pe orte 8 -N rptmskr"
     run: 
         outdir = os.path.dirname(output[0])
-        shell("""RepeatMasker -pa 8 -s -gff -no_is -xsmall -e wublast -species "{SPECIES}" -dir {outdir} {input}; rm -f {outdir}/{input[0]}.{{cat,out,ref,tbl}}""")
-        if not all([os.path.exists(out) for out in output]):
-            shell("rsync {input[0]} {output[0]}; touch {output[1]}")
+        shell("""RepeatMasker -pa 8 -s -no_is -gff -e wublast -species "{SPECIES}" -dir {outdir} {input[0]}; rm -f {outdir}/{input[0]}.{{cat,out,ref,tbl}}""")
 
 rule get_contig_lengths:
     input: "analysis/{contig}/fastas/{contig}.fasta.fai"
