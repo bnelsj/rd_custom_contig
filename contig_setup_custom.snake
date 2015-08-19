@@ -2,7 +2,7 @@ import os
 import glob
 
 if not os.path.exists("log"):
-    os.makedir("log")
+    os.mkdir("log")
 
 SPECIES = config.get("species")
 CONTIG = config.get("contig")
@@ -88,7 +88,7 @@ rule setup_rd_mapping:
 
 rule make_sunk_track:
     input:  fasta = "analysis/%s/fastas/%s.fasta" % (CONTIG, CONTIG), 
-            masked_fasta = "analysis/%s/fastas/%s.masked" % (CONTIG, CONTIG), 
+            masked_fasta = "analysis/%s/fastas/%s.fasta.masked" % (CONTIG, CONTIG), 
             trf_masked_fasta = "analysis/%s/fastas/%s.fasta.2.3.5.80.10.30.1000.mask" % (CONTIG, CONTIG),
             contig_lengths = "%s_lengths.tab" % CONTIG,
             sunks = "analysis/%s/mappings/mapped_kmers.SINGLE_HITS" % CONTIG
@@ -145,26 +145,26 @@ rule mrsfast_index:
     shell: "~calkan/bin/mrsfast --index {input}"
 
 rule make_hardmasked_reference:
-    input: get_allelic_regions, MASKED_REFERENCE, "analysis/%s/fastas/%s.masked" % (CONTIG, CONTIG)
+    input: get_allelic_regions, MASKED_REFERENCE, "mask/%s/fastas/%s.rp.trf.mask.fasta" % (CONTIG, CONTIG)
     output: "allele_cleaned_genomes/masked_%s_%s.fa" % (REFERENCE, CONTIG), "allele_cleaned_genomes/masked_%s_plus_%s.fa" % (REFERENCE, CONTIG)
     params: sge_opts = "-N hardmask"
     shell:
         "maskFastaFromBed -fi {input[1]} -bed {input[0]} -fo {output[0]}; "
         "cat {output[0]} {input[2]} > {output[1]}"
 
-rule combine_contig_lengths:
-    input: "%s_lengths.tab" % CONTIG
-    output: "custom_contig_combined_lengths.tab"
-    params: sge_opts = ""
-    shell: "cat {input} > {output}"
+#rule combine_contig_lengths:
+#    input: "%s_lengths.tab" % CONTIG
+#    output: "custom_contig_combined_lengths.tab"
+#    params: sge_opts = ""
+#    shell: "cat {input} > {output}"
 
-rule combine_masked_contigs:
-    input: "mask/%s/fastas/%s.rp.trf.mask.fasta" % (CONTIG, CONTIG)
-    output: "combined_mask/custom_contig.rp.trf.mask.fasta"
-    params: sge_opts = ""
-    shell:
-        "cat {input} > {output}; "
-        "~calkan/bin/mrsfast --index {output}"
+#rule index_masked_contig:
+#    input: "mask/%s/fastas/%s.rp.trf.mask.fasta" % (CONTIG, CONTIG)
+#    output: "mask/%s/fastas/%s.rp.trf.mask.fasta.fai" % (CONTIG, CONTIG)
+#    params: sge_opts = ""
+#    shell:
+#        "cat {input} > {output}; "
+#        "~calkan/bin/mrsfast --index {output}"
 
 rule contig_trf_repeat_masks:
     input: "analysis/%s/fastas/%s.fasta.2.3.5.80.10.30.1000.mask" % (CONTIG, CONTIG), "analysis/%s/fastas/%s.fasta.out.gff" % (CONTIG, CONTIG)
