@@ -152,20 +152,6 @@ rule make_hardmasked_reference:
         "maskFastaFromBed -fi {input[1]} -bed {input[0]} -fo {output[0]}; "
         "cat {output[0]} {input[2]} > {output[1]}"
 
-#rule combine_contig_lengths:
-#    input: "%s_lengths.tab" % CONTIG
-#    output: "custom_contig_combined_lengths.tab"
-#    params: sge_opts = ""
-#    shell: "cat {input} > {output}"
-
-#rule index_masked_contig:
-#    input: "mask/%s/fastas/%s.rp.trf.mask.fasta" % (CONTIG, CONTIG)
-#    output: "mask/%s/fastas/%s.rp.trf.mask.fasta.fai" % (CONTIG, CONTIG)
-#    params: sge_opts = ""
-#    shell:
-#        "cat {input} > {output}; "
-#        "~calkan/bin/mrsfast --index {output}"
-
 rule contig_trf_repeat_masks:
     input: "analysis/%s/fastas/%s.fasta.2.3.5.80.10.30.1000.mask" % (CONTIG, CONTIG), "analysis/%s/fastas/%s.fasta.out.gff" % (CONTIG, CONTIG)
     output: "mask/%s/fastas/%s.rp.trf.mask.fasta" % (CONTIG, CONTIG)
