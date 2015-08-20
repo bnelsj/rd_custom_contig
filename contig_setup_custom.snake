@@ -200,5 +200,4 @@ rule index_fasta:
     input: CONTIG_PATH
     output: "analysis/%s/fastas/%s.fasta" % (CONTIG, CONTIG), "analysis/%s/fastas/%s.fasta.fai" % (CONTIG, CONTIG)
     params: sge_opts = ""
-    run:
-        shell("cp {input} {output[0]}; samtools faidx {output[0]}")
+    shell: "rsync {input} {output[0]}; samtools faidx {output[0]}"
