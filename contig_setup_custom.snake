@@ -37,7 +37,7 @@ def _get_bac_summary_file_from_wildcards(wildcards):
 def get_allelic_regions(wildcards):
     return config["contig_files"]["allelic_regions"]
 
-localrules: all, setup_rd_mapping
+localrules: all, setup_rd_mapping, make_sample_index
 
 rule all:
     input: "%s_sunk_mask_track_pad36_e0.dts" % CONTIG
@@ -47,12 +47,12 @@ rule get_WSSD_cc:
     params: sge_opts=""
 
 rule WSSD_cc:
-    input: "mapping/{genome}/{genome}/wssd_out_file", "read_depth/%s.GC_content" % CONTIG
+    input: "mapping/{genome}/{genome}/wssd_out_file", "read_depth/%s.GC_content" % CONTIG, "%s_lengths.tab" % CONTIG
     output: "primary_analysis/{genome}/combined_corrected_wssd/wssd.combined_corrected.GC3.v2"
-    params: sge_opts="-l mfree=14G -N wssd_{genome}", genome=_get_genome_from_wildcards, contig_lengths = "custom_contig_combined_lengths.tab"
+    params: sge_opts="-l mfree=14G -N wssd_{genome}", genome="index/{genome}"
     priority: 10
     shell: """. ~jlhudd/pipelines/read_depth/env.sh; python ~psudmant/EEE_Lab/1000G/1000genomesScripts/wssd_make_combined_adjusted_tracks/wssd_make_combined_adjusted_tracks.py \
-                                    --contigLengths {params.contig_lengths} \
+                                    --contigLengths {input[2]} \
                                     --gc_width {GC_WIDTH}  \
                                     --in_genomes {params.genome} \
                                     --inGC {GC_TRACK}:GC_content \
@@ -62,8 +62,22 @@ rule WSSD_cc:
                                     --append_to_name .GC3.v2  \
                                     --overide_thresh .01"""
 
+rule make_sample_index:
+	input: bam_list = BAM_LIST
+	output: ["index/%s" % genome for genome in genomes], "index.genome"
+	params: sge_opts = ""
+	run:
+		cwd = os.getcwd()
+		mapping = cwd + "/" + "mapping"
+		sequences = cwd + "/" + "sequences"
+		primary_analysis = cwd + "/" + "primary_analysis"
+		for genome in genomes:
+			with open("index/%s" % genome, "w") as outfile:
+				outfile.write("\t".join([genome, mapping, bac_analysis, sequences, primary_analysis]))
+		shell("cat index/* > index.genome")
+
 rule make_gc_track:
-    input: "analysis/%s/fastas/%s.fasta" % (CONTIG, CONTIG), "custom_contig_combined_lengths.tab"
+    input: "analysis/%s/fastas/%s.fasta" % (CONTIG, CONTIG), "%s_lengths.tab" % CONTIG
     output: "read_depth/%s.GC_content" % CONTIG
     params: sge_opts = "-l mfree=2G"
     shell:
@@ -72,7 +86,7 @@ rule make_gc_track:
 
 rule setup_rd_mapping:
     input:  fasta = "combined_mask/custom_contig.rp.trf.mask.fasta",
-            contig_lengths = "custom_contig_combined_lengths.tab",
+            contig_lengths = "%s_lengths.tab" % CONTIG, 
             bam_list = BAM_LIST 
     output: "job_id_triplets.txt"
     params: mpi_map = config.get("mpi_mapper_path")

@@ -13,7 +13,7 @@
     "dataset_files": {
         "hgdp": {
             "bam_list": "/net/eichler/vol23/projects/human_diversity/nobackups/bnelsj/CH17_hgdp/hgdp_bam_list.tab",
-            "bac_analysis": "",    
+            "bac_analysis": "/net/eichler/vol20/projects/human_diversity_sequencing/nobackups/C_team/bac_analysis_renamed",    
             "split_dir": "/net/eichler/vol23/projects/human_diversity/nobackups/bnelsj/CH17_hgdp/index_old_bac"
         }
     },
