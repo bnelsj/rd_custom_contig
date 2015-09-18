@@ -88,7 +88,7 @@ rule make_gc_track:
             --gc_width={GC_WIDTH} --fastq_sequence {input[0]}"
 
 rule setup_rd_mapping:
-    input:  fasta = "combined_mask/custom_contig.rp.trf.mask.fasta",
+    input:  fasta = "mask/%s/fastas/%s.rp.trf.mask.fasta" % (CONTIG, CONTIG),
             contig_lengths = "%s_lengths.tab" % CONTIG, 
             bam_list = BAM_LIST 
     output: "job_id_triplets.txt"
