@@ -4,6 +4,9 @@ import glob
 if not os.path.exists("log"):
     os.mkdir("log")
 
+if config == {}:
+    configfile: "config.json"
+
 SPECIES = config.get("species")
 CONTIG = config.get("contig")
 CONTIG_PATH = config["contig_files"]["fasta"]
