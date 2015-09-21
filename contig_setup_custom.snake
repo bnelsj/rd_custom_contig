@@ -97,7 +97,7 @@ rule setup_rd_mapping:
         cwd = os.getcwd()
         contig_name = os.path.basename(input.fasta)
         shell("bash {params.mpi_map}/do_generate_mapping_scripts.sh \
-                -c {input.contig_lengths} \
+                -c {cwd}/{input.contig_lengths} \
                 -s {input.fasta} \
                 -i /var/tmp/rd_mapping_index/{input.fasta} {input.bam_list} {cwd}/mapping > {output}")
         shell("echo Run this command to begin mapping: \n"
