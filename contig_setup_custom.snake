@@ -94,11 +94,13 @@ rule setup_rd_mapping:
     output: "job_id_triplets.txt"
     params: mpi_map = config.get("mpi_mapper_path")
     run:
+        fasta = os.path.abspath(input.fasta)
+        contig_lengths = os.path.abspath(input.fasta)
         cwd = os.getcwd()
         contig_name = os.path.basename(input.fasta)
         shell("bash {params.mpi_map}/do_generate_mapping_scripts.sh \
-                -c {cwd}/{input.contig_lengths} \
-                -s {input.fasta} \
+                -c {contig_lengths} \
+                -s {fasta} \
                 -i /var/tmp/rd_mapping_index/{input.fasta} {input.bam_list} {cwd}/mapping > {output}")
         shell("echo Run this command to begin mapping: \n"
               '''echo "python {params.mpi_map}/qrls_jid_triplets.py -n 3 --fn_triplets {output} | bash"''')
