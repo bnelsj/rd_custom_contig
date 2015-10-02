@@ -95,7 +95,7 @@ rule setup_rd_mapping:
     params: mpi_map = config.get("mpi_mapper_path")
     run:
         fasta = os.path.abspath(input.fasta)
-        contig_lengths = os.path.abspath(input.fasta)
+        contig_lengths = os.path.abspath(input.contig_lengths)
         cwd = os.getcwd()
         contig_name = os.path.basename(input.fasta)
         shell("bash {params.mpi_map}/do_generate_mapping_scripts.sh \
