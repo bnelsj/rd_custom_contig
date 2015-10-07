@@ -17,7 +17,7 @@ MASKED_REFERENCE = config["ref_files"][REFERENCE]["masked_reference"]
 shell.prefix("source modules.txt; ")
 
 BAM_LIST = config["dataset_files"][config.get("dataset")]["bam_list"]
-
+SEX_INFO = config["dataset_files"][config.get("dataset")]["sex_info"]
 SPLIT_DIR = config["dataset_files"][config.get("dataset")]["split_dir"]
 GC_WIDTH = config.get("gc_width")
 
@@ -58,8 +58,8 @@ rule WSSD_cc:
                                     --contigLengths {input[2]} \
                                     --gc_width {GC_WIDTH}  \
                                     --in_genomes {params.genome} \
-                                    --inGC {GC_TRACK}:GC_content \
-                                    --sex_pop_index {SEX_POP} \
+                                    --inGC {input[1]}:GC_content \
+                                    --sex_pop_index {SEX_INFO} \
                                     --input_wssd_file_names wssd_out_file \
                                     --max_correction 3  \
                                     --append_to_name .GC3.v2  \
