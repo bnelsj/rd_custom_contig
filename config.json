@@ -17,9 +17,10 @@
             "split_dir": "/net/eichler/vol23/projects/human_diversity/nobackups/bnelsj/CH17_hgdp/index_old_bac"
         },
 		"nhp": {
-            "bam_list": "/net/eichler/vol19/projects/apes/nobackups/bnelsj/pan_pongo_bac_mapping/rd_custom_contig/pan_samples.txt",
+            "bam_list": "/net/eichler/vol19/projects/apes/nobackups/bnelsj/pan_pongo_bac_mapping/PAN/rd_custom_contig/pan_samples.txt",
             "bac_analysis": "/net/eichler/vol19/projects/apes/nobackups/bknelson/peterfiles/read_depth_feb2013/bac_analysis",
-            "split_dir": "/net/eichler/vol19/projects/apes/nobackups/jlhudd/results/2014-10-29-create_DTS_files_for_hg19_read_depth/genomes"
+            "split_dir": "/net/eichler/vol19/projects/apes/nobackups/bnelsj/pan_pongo_bac_mapping/PAN/rd_custom_contig/index",
+			"sex_info": "/net/eichler/vol19/projects/apes/nobackups/bknelson/peterfiles/read_depth_feb2013/sex_information/sex_info"
 		}
     },
     "gc_width": 200,
