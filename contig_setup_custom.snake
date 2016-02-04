@@ -4,6 +4,9 @@ import glob
 if not os.path.exists("log"):
     os.mkdir("log")
 
+if config == {}:
+    configfile: "config.json"
+
 SPECIES = config.get("species")
 CONTIG = config.get("contig")
 CONTIG_PATH = config["contig_files"]["fasta"]
@@ -14,7 +17,7 @@ MASKED_REFERENCE = config["ref_files"][REFERENCE]["masked_reference"]
 shell.prefix("source modules.txt; ")
 
 BAM_LIST = config["dataset_files"][config.get("dataset")]["bam_list"]
-
+SEX_INFO = config["dataset_files"][config.get("dataset")]["sex_info"]
 SPLIT_DIR = config["dataset_files"][config.get("dataset")]["split_dir"]
 GC_WIDTH = config.get("gc_width")
 
@@ -55,8 +58,8 @@ rule WSSD_cc:
                                     --contigLengths {input[2]} \
                                     --gc_width {GC_WIDTH}  \
                                     --in_genomes {params.genome} \
-                                    --inGC {GC_TRACK}:GC_content \
-                                    --sex_pop_index {SEX_POP} \
+                                    --inGC {input[1]}:GC_content \
+                                    --sex_pop_index {SEX_INFO} \
                                     --input_wssd_file_names wssd_out_file \
                                     --max_correction 3  \
                                     --append_to_name .GC3.v2  \
@@ -85,19 +88,21 @@ rule make_gc_track:
             --gc_width={GC_WIDTH} --fastq_sequence {input[0]}"
 
 rule setup_rd_mapping:
-    input:  fasta = "combined_mask/custom_contig.rp.trf.mask.fasta",
+    input:  fasta = "mask/%s/fastas/%s.rp.trf.mask.fasta" % (CONTIG, CONTIG),
             contig_lengths = "%s_lengths.tab" % CONTIG, 
             bam_list = BAM_LIST 
     output: "job_id_triplets.txt"
     params: mpi_map = config.get("mpi_mapper_path")
     run:
+        fasta = os.path.abspath(input.fasta)
+        contig_lengths = os.path.abspath(input.contig_lengths)
         cwd = os.getcwd()
         contig_path = os.path.dirname(input.fasta)
         contig_name = os.path.basename(input.fasta)
         shell("bash {params.mpi_map}/do_generate_mapping_scripts.sh \
-                -c {input.contig_lengths} \
-                -s {contig_path} \
-                -i /var/tmp/rd_mapping_index/{contig_path} {input.bam_list} {cwd}/mapping > {output}")
+                -c {contig_lengths} \
+                -s {fasta} \
+                -i /var/tmp/rd_mapping_index/{input.fasta} {input.bam_list} {cwd}/mapping > {output}")
         shell("echo Run this command to begin mapping: \n"
               '''echo "python {params.mpi_map}/qrls_jid_triplets.py -n 3 --fn_triplets {output} | bash"''')
 
