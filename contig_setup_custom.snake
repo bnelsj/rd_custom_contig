@@ -18,7 +18,7 @@ shell.prefix("source modules.txt; ")
 
 BAM_LIST = config["dataset_files"][config.get("dataset")]["bam_list"]
 SEX_INFO = config["dataset_files"][config.get("dataset")]["sex_info"]
-SPLIT_DIR = config["dataset_files"][config.get("dataset")]["split_dir"]
+SPLIT_DIR = config["ref_files"][REFERENCE][config.get("dataset")]["split_dir"]
 GC_WIDTH = config.get("gc_width")
 
 g_to_index = {}
@@ -88,23 +88,29 @@ rule make_gc_track:
             --gc_width={GC_WIDTH} --fastq_sequence {input[0]}"
 
 rule setup_rd_mapping:
-    input:  fasta = "mask/%s/fastas/%s.rp.trf.mask.fasta" % (CONTIG, CONTIG),
+    input:  fasta_index = "mask/fastas/%s/%s.rp.trf.mask.fasta.index" % (CONTIG, CONTIG),
             contig_lengths = "%s_lengths.tab" % CONTIG, 
             bam_list = BAM_LIST 
     output: "job_id_triplets.txt"
     params: mpi_map = config.get("mpi_mapper_path")
     run:
-        fasta = os.path.abspath(input.fasta)
+        fasta_dir = os.path.abspath(os.path.dirname(input.fasta_index))
+        fasta_name = os.path.basename(input.fasta_index.replace(".index", ""))
+        fasta_parent_dir = os.path.basename(os.path.dirname(input.fasta_index))
         contig_lengths = os.path.abspath(input.contig_lengths)
         cwd = os.getcwd()
-        contig_path = os.path.dirname(input.fasta)
-        contig_name = os.path.basename(input.fasta)
         shell("bash {params.mpi_map}/do_generate_mapping_scripts.sh \
                 -c {contig_lengths} \
-                -s {fasta} \
-                -i /var/tmp/rd_mapping_index/{input.fasta} {input.bam_list} {cwd}/mapping > {output}")
+                -s {fasta_dir} \
+                -i /var/tmp/fastas/{fasta_parent_dir}/{fasta_name} {input.bam_list} {cwd}/mapping > {output}")
         shell("echo Run this command to begin mapping: \n"
               '''echo "python {params.mpi_map}/qrls_jid_triplets.py -n 3 --fn_triplets {output} | bash"''')
+
+rule mrsfast_index_rmmasked_fasta:
+    input: "mask/fastas/%s/%s.rp.trf.mask.fasta" % (CONTIG, CONTIG)
+    output: "mask/fastas/%s/%s.rp.trf.mask.fasta.index" % (CONTIG, CONTIG)
+    params: ""
+    shell: "mrsfast --index {input}"
 
 rule make_sunk_track:
     input:  fasta = "analysis/%s/fastas/%s.fasta" % (CONTIG, CONTIG), 
