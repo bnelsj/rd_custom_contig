@@ -1,27 +1,32 @@
 {
-    "dataset": "nhp",
-    "reference": "hg19",
-    "contig": "chimp_CFHR",
+    "dataset": "hgdp",
+    "reference": "hg38",
+    "contig": "FAM115C_LOC154761_final",
     "contig_files": {
-        "fasta": "/net/eichler/vol2/eee_shared/Stuart/pcb_fasta/CFHR_fasta/CH251/contig/CH251-CFHR-contig.fasta",
+        "fasta": "/net/eichler/vol23/projects/human_diversity/nobackups/bnelsj/hsdg/FAM115C/rd_custom_human_contig/FAM115C_LOC154761_final.fasta",
         "allelic_regions": "allelic_regions.bed"
     },
-    "species": "chimpanzee",
+    "species": "human",
     "ref_files": {
-        "hg19": {"masked_reference": "/net/eichler/vol2/eee_shared/assemblies/hg19/hg19_masked"}
+        "hg19": {"masked_reference": "/net/eichler/vol2/eee_shared/assemblies/hg19/hg19_masked"},
+        "hg38": {"masked_reference": "/net/eichler/vol2/eee_shared/assemblies/hg38/read_depth/illumina/hg38.rmsk_and_trf.fa",
+               "hgdp": {"bac_analysis": "/net/eichler/vol24/projects/hg38_read_depth/nobackups/c_team/bac_analysis",
+                         "split_dir": "/net/eichler/vol2/eee_shared/whole_genome_resources/hg38/hgdp/split_index"},
+               "nhp": {"bac_analysis": "",
+                     "split_dir": ""}
+              }
     },
     "dataset_files": {
         "hgdp": {
-            "bam_list": "/net/eichler/vol23/projects/human_diversity/nobackups/bnelsj/CH17_hgdp/hgdp_bam_list.tab",
-            "bac_analysis": "/net/eichler/vol20/projects/human_diversity_sequencing/nobackups/C_team/bac_analysis_renamed",    
-            "split_dir": "/net/eichler/vol23/projects/human_diversity/nobackups/bnelsj/CH17_hgdp/index_old_bac"
+            "bam_list": "/net/eichler/vol23/projects/human_diversity/nobackups/bnelsj/hsdg/FAM115C/rd_custom_human_contig/hgdp.fully_public.224.list.tab",
+            "sex_info": "/net/eichler/vol2/eee_shared/whole_genome_resources/hgdp/sex_info"
         },
-		"nhp": {
+        "nhp": {
             "bam_list": "/net/eichler/vol19/projects/apes/nobackups/bnelsj/pan_pongo_bac_mapping/PAN/rd_custom_contig/pan_samples.txt",
             "bac_analysis": "/net/eichler/vol19/projects/apes/nobackups/bknelson/peterfiles/read_depth_feb2013/bac_analysis",
             "split_dir": "/net/eichler/vol19/projects/apes/nobackups/bnelsj/pan_pongo_bac_mapping/PAN/rd_custom_contig/index",
-			"sex_info": "/net/eichler/vol19/projects/apes/nobackups/bknelson/peterfiles/read_depth_feb2013/sex_information/sex_info"
-		}
+            "sex_info": "/net/eichler/vol19/projects/apes/nobackups/bknelson/peterfiles/read_depth_feb2013/sex_information/sex_info"
+        }
     },
     "gc_width": 200,
     "mpi_mapper_path": "/net/eichler/vol2/eee_shared/pipelines/MPI_mrsfast_mapping_single"

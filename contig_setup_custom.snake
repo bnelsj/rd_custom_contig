@@ -19,6 +19,7 @@ shell.prefix("source modules.txt; ")
 BAM_LIST = config["dataset_files"][config.get("dataset")]["bam_list"]
 SEX_INFO = config["dataset_files"][config.get("dataset")]["sex_info"]
 SPLIT_DIR = config["ref_files"][REFERENCE][config.get("dataset")]["split_dir"]
+OLD_BAC_DIR = config["ref_files"][REFERENCE][config.get("dataset")]["bac_analysis"]
 GC_WIDTH = config.get("gc_width")
 
 g_to_index = {}
@@ -43,7 +44,7 @@ def get_allelic_regions(wildcards):
 localrules: all, setup_rd_mapping, make_sample_index
 
 rule all:
-    input: "%s_sunk_mask_track_pad36_e0.dts" % CONTIG
+    input: "%s_sunk_mask_track_pad36_e0.dts" % CONTIG, "%s_noWM_pad36.dts" % CONTIG
 
 rule get_WSSD_cc:
     input: expand("primary_analysis/{genome}/combined_corrected_wssd/wssd.combined_corrected.GC3.v2", genome=genomes)
@@ -66,18 +67,19 @@ rule WSSD_cc:
                                     --overide_thresh .01"""
 
 rule make_sample_index:
-	input: bam_list = BAM_LIST
-	output: ["index/%s" % genome for genome in genomes], "index.genome"
-	params: sge_opts = ""
-	run:
-		cwd = os.getcwd()
-		mapping = cwd + "/" + "mapping"
-		sequences = cwd + "/" + "sequences"
-		primary_analysis = cwd + "/" + "primary_analysis"
-		for genome in genomes:
-			with open("index/%s" % genome, "w") as outfile:
-				outfile.write("\t".join([genome, mapping, bac_analysis, sequences, primary_analysis]))
-		shell("cat index/* > index.genome")
+    input: bam_list = BAM_LIST
+    output: ["index/%s" % genome for genome in genomes], "index.genome"
+    params: sge_opts = ""
+    run:
+        cwd = os.getcwd()
+        mapping = cwd + "/mapping"
+        bac_analysis = OLD_BAC_DIR
+        sequences = cwd + "/sequences"
+        primary_analysis = cwd + "/primary_analysis"
+        for genome in genomes:
+            with open("index/%s" % genome, "w") as outfile:
+                outfile.write("\t".join([genome, mapping, bac_analysis, sequences, primary_analysis]))
+        shell("cat index/* > index.genome")
 
 rule make_gc_track:
     input: "analysis/%s/fastas/%s.fasta" % (CONTIG, CONTIG), "%s_lengths.tab" % CONTIG
@@ -105,6 +107,15 @@ rule setup_rd_mapping:
                 -i /var/tmp/fastas/{fasta_parent_dir}/{fasta_name} {input.bam_list} {cwd}/mapping > {output}")
         shell("echo Run this command to begin mapping: \n"
               '''echo "python {params.mpi_map}/qrls_jid_triplets.py -n 3 --fn_triplets {output} | bash"''')
+
+rule make_masked_dts_track:
+    input: "mask/fastas/%s/%s.rp.trf.mask.fasta" % (CONTIG, CONTIG), "%s_lengths.tab" % CONTIG
+    output: "%s_noWM_pad36.dts" % CONTIG
+    params: ""
+    shell:
+        "python ~psudmant/EEE_Lab/1000G/1000genomesScripts/build_mask/make_padded_mask_from_multiple_Nd_fastas.py "
+        "--input_fa={input[0]} --input_RM_fa={input[0]} --input_TRF_fa={input[0]} "
+        "--fn_mask_out={output} --pad=36 --contigs {input[1]}"
 
 rule mrsfast_index_rmmasked_fasta:
     input: "mask/fastas/%s/%s.rp.trf.mask.fasta" % (CONTIG, CONTIG)
