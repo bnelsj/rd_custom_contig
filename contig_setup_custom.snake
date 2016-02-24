@@ -182,7 +182,7 @@ rule mrsfast_index:
     shell: "~calkan/bin/mrsfast --index {input}"
 
 rule make_hardmasked_reference:
-    input: get_allelic_regions, MASKED_REFERENCE, "mask/%s/fastas/%s.rp.trf.mask.fasta" % (CONTIG, CONTIG)
+    input: get_allelic_regions, MASKED_REFERENCE, "mask/fastas/%s/%s.rp.trf.mask.fasta" % (CONTIG, CONTIG)
     output: "allele_cleaned_genomes/masked_%s_%s.fa" % (REFERENCE, CONTIG), "allele_cleaned_genomes/masked_%s_plus_%s.fa" % (REFERENCE, CONTIG)
     params: sge_opts = "-N hardmask"
     shell:
@@ -191,7 +191,7 @@ rule make_hardmasked_reference:
 
 rule contig_trf_repeat_masks:
     input: "analysis/%s/fastas/%s.fasta.2.3.5.80.10.30.1000.mask" % (CONTIG, CONTIG), "analysis/%s/fastas/%s.fasta.out.gff" % (CONTIG, CONTIG)
-    output: "mask/%s/fastas/%s.rp.trf.mask.fasta" % (CONTIG, CONTIG)
+    output: "mask/fastas/%s/%s.rp.trf.mask.fasta" % (CONTIG, CONTIG)
     params: sge_opts = "-l mfree=2G"
     shell:
         "bedtools maskfasta -fi {input[0]} -bed {input[1]} -fo {output}; "
