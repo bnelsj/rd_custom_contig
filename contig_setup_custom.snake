@@ -5,7 +5,7 @@ if not os.path.exists("log"):
     os.mkdir("log")
 
 if config == {}:
-    configfile: "config.json"
+    configfile: "config.yaml"
 
 SPECIES = config.get("species")
 CONTIG = config.get("contig")
@@ -44,7 +44,7 @@ def get_allelic_regions(wildcards):
 localrules: all, setup_rd_mapping, make_sample_index
 
 rule all:
-    input: "%s_sunk_mask_track_pad36_e0.dts" % CONTIG, "%s_noWM_pad36.dts" % CONTIG, "read_depth/%s.GC_content" % CONTIG
+    input: "%s_sunk_mask_track_pad36_e0.dts" % CONTIG, "%s_noWM_pad36.dts" % CONTIG, "read_depth/%s.GC_content" % CONTIG, "index.genome"
 
 rule get_WSSD_cc:
     input: expand("primary_analysis/{genome}/combined_corrected_wssd/wssd.combined_corrected.GC3.v2", genome=genomes)
