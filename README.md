@@ -12,27 +12,27 @@ git clone https://github.com/bnelsj/rd_custom_contig.git
 cd rd_custom_contig
 ```
 
-Set the variables in `config.json` to match your data. In particular, set `contig`, `contig_files[fasta]`, and `contig_files[allelic_regions]`. Note that your fasta file may contain multiple contigs, but there is currently no support for parallelization through separating analyses by contig. Allelic regions are the coordinates in the reference genome that will be patched by your contig(s).
+Set the variables in `config.yaml` to match your data. In particular, set `contig`, `contig_files[fasta]`, and `contig_files[allelic_regions]`. Note that your fasta file may contain multiple contigs, but there is currently no support for parallelization through separating analyses by contig. Allelic regions are the coordinates in the reference genome that will be patched by your contig(s).
 
 ##Preparing your custom contig
 
 Do a dry run to test if your snakefile is setup properly:
 ```
-snakemake -s contig_setup_custom.snake --configfile config.json -np
+snakemake -s contig_setup_custom.snake --configfile config.yaml -np
 ```
 This will build the snakemake rule graph and print shell commands, but won't run any jobs. If you aren't getting any errors, run the pipeline for real:
 ```
-snakemake -s contig_setup_custom.snake --configfile config.json -c "qsub {params.sge_opts}" -j 5 -w 30
+snakemake -s contig_setup_custom.snake --configfile config.yaml -c "qsub {params.sge_opts}" -j 5 -w 30
 ```
 
 This will hard mask using RepeatMasker and TRF, build a patched, hard masked reference, find unique kmers in your contigs, and remove unique kmers found elsewhere in the reference to build a SUNK dts file.
 
 ##Read depth mapping with mrsfast
-This step uses code from Peter's MPI RD mapping pipeline and runs outside snakemake, but automatically picks the correct files from the previous steps. These files are your repeat and tandem repeat-masked contig, a list of contig lengths (created in the contig prep steps), and a tab-delimited list with sample names and bam paths for mapping (specified in `config.json` file, 236 hgdp samples by default).
+This step uses code from Peter's MPI RD mapping pipeline and runs outside snakemake, but automatically picks the correct files from the previous steps. These files are your repeat and tandem repeat-masked contig, a list of contig lengths (created in the contig prep steps), and a tab-delimited list with sample names and bam paths for mapping (specified in `config.yaml` file, 236 hgdp samples by default).
 
 To queue the mapping jobs, run:
 ```
-snakemake -s contig_setup_custom.snake --configfile config.json setup_rd_mapping
+snakemake -s contig_setup_custom.snake --configfile config.yaml setup_rd_mapping
 ```
 
 This will qsub an `mpi_READER`, `mpi_RUNNER`, and `MPI_WRANGLER` job for each sample in `bam_list`. These jobs are submitted in a hold state, so nothing is running yet. Run this command to split the samples and begin running three at a time:
